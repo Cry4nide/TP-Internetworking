@@ -75,7 +75,7 @@ int main(void){
     int sockfd, new_fd, numbytes;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
     struct sockaddr_in my_addr;    // información sobre mi dirección
     struct sockaddr_in their_addr; // información sobre la dirección del cliente
-    int sin_size;
+    socklen_t sin_size;
     struct sigaction sa;
     int yes=1;
 
