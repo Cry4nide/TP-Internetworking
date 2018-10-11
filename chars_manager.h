@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <math.h>
 /*
 * chars_manager.h library was build by Mauricio Aizaga <mauricioaizaga.com>
 *
@@ -24,10 +26,10 @@ void strreverse(char* begin, char* end) {
         aux=*end, *end--=*begin, *begin++=aux;
 }
 
-static void itoa(intptr_t value, char* str, int base) {
+static void itoa(__intptr_t value, char* str, int base) {
 	static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 	char* wstr=str;
-	intptr_t sign;
+	__intptr_t sign;
 	div_t res;
 	// Validate base
 	if (base<2 || base>35){ *wstr='\0'; return; }

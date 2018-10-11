@@ -1,5 +1,7 @@
 #include <dirent.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_RESPONSE_SIZE 1000
 
@@ -64,7 +66,7 @@ char * show_dir(char * path){
 
 char * upload_file(char * path){
     printf("upload_file: %s\n", path);
-    return "upload_file.......... %s", path;
+    return 0;
 }
 
 
