@@ -13,6 +13,11 @@
 #include "protocolo.h"
 #include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+/** Longitud del buffer  */
+#define BUFFERSIZE 512
 
 typedef struct Nodo
 {
@@ -48,6 +53,9 @@ void procesoArchivo(char *ruta, struct dirent *ent, ListaCliente *np);
 
 void listar_archivos(ListaCliente *np);
 
+void borrar_archivo(ListaCliente *np, char tmp_buffer[]);
+
+void bajar_archivo(ListaCliente *np, char tmp_buffer[]);
 // Estructura que contiene los ususarios que se van conectando
 
 /////////////////////////////
@@ -82,7 +90,7 @@ void enviar_a_cliente(ListaCliente *np, char tmp_buffer[])
 		//if (np->dato_sd != tmp->dato_sd)
 		if (np->dato_sd == tmp->dato_sd)
 		{ //se lo envio a todos menos a él mismo
-			sprintf(tmp_buffer, "ECHO: %s", tmp_buffer);
+			sprintf(tmp_buffer, "%s", tmp_buffer);
 			send(tmp->dato_sd, tmp_buffer, LENGTH_MSG, 0);
 		}
 		tmp = tmp->ult;
@@ -109,7 +117,7 @@ void inicio_charla(void *pcliente)
 	{
 		//esto se cambiaria por x usuario se ha conectado
 		strncpy(np->nombre, nickname, LENGTH_NAME);
-		printf("<< %s(%s) ingreso al chat >>\n", np->nombre, np->ip);
+		printf("<< %s(%s) Se ha conectado al FTP  >>\n", np->nombre, np->ip);
 	}
 
 	//conversacion
@@ -140,6 +148,19 @@ void inicio_charla(void *pcliente)
 				listar_archivos(np);
 				flag_command = 1;
 			}
+			if (strstr(recv_buffer, "BORRAR") != NULL)
+			{
+				printf("%d", strlen(recv_buffer));
+				borrar_archivo(np, recv_buffer);
+				flag_command = 1;
+			}
+			if (strstr(recv_buffer, "BAJAR") != NULL)
+			{
+				printf("%d", strlen(recv_buffer));
+				bajar_archivo(np, recv_buffer);
+				flag_command = 1;
+			}
+
 			//transforma los datos recibidos y los prepara para enviarlos
 		}
 		else if (recibe == 0 || strcmp(recv_buffer, "salir") == 0)
@@ -157,7 +178,6 @@ void inicio_charla(void *pcliente)
 		if (flag_command == 1)
 		{
 			enviar_a_todos(np, send_buffer);
-			enviar_a_cliente(np, send_buffer);
 		}
 	}
 	//eliminar nodo (del usuario que salio del chat)
@@ -264,6 +284,73 @@ void listar_archivos(ListaCliente *np)
 	closedir(dir);
 
 	return EXIT_SUCCESS;
+}
+
+void borrar_archivo(ListaCliente *np, char tmp_buffer[])
+{
+	int count = 0;
+	char buffer[LENGTH_MSG] = {};
+	int borrar;
+	char *ret;
+	memset(buffer, 0, BUFFERSIZE);
+	ret = strtok(tmp_buffer, " ");
+	while (ret != NULL)
+	{
+		sprintf(buffer, "%s", ret);
+		ret = strtok(NULL, " ");
+		if (count == 1)
+		{
+			borrar = remove(buffer); //SI BORRAR ES 0 LO ELIMINO EXITOSAMENTE
+			if (borrar == 0)
+			{
+				sprintf(buffer, "Archivo eliminado");
+			}
+			else
+			{
+				sprintf(buffer, "Archivo no encontrado");
+			}
+			enviar_a_cliente(np, buffer);
+		}
+		count++;
+	}
+}
+void bajar_archivo(ListaCliente *np, char tmp_buffer[])
+{
+	int file;
+	char buffer[LENGTH_MSG] = {};
+	char *ret;
+	int count = 0;
+	int offset = 0;
+	ListaCliente *tmp = root->ult;
+	ret = strtok(tmp_buffer, " ");
+	while (ret != NULL)
+	{
+		sprintf(buffer, "%s", ret);
+		ret = strtok(NULL, " ");
+		if (count == 1)
+		{
+			file = open("pepito.txt", O_RDONLY);
+			if (file == -1)
+			{
+				sprintf(buffer, "El archivo no existe o esta dañado");
+			}
+			else
+			{
+				while (tmp != NULL)
+				{
+					if (np->dato_sd == tmp->dato_sd)
+					{ //le envio el archivo
+						sprintf(buffer, "Transfiriendo");
+						sendfile(tmp->dato_sd, file, 0, BUFSIZ);
+					}
+					tmp = tmp->ult;
+				}
+				sprintf(buffer, "Archivo transferido exitosamente");
+			}
+			enviar_a_cliente(np, buffer);
+		}
+		count++;
+	}
 }
 
 void error(const char *s)
